@@ -131,6 +131,34 @@
             display: none;
             min-height: 60px;
             object-fit: contain;
+            background-color: #f0f0f0;
+            position: relative;
+        }
+
+        .card-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 7px;
+        }
+
+        .card-image.loaded::before {
+            display: none;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+            100% {
+                background-position: -200% 0;
+            }
         }
 
         .memory-card.flipped .card-image {
@@ -298,6 +326,9 @@
         <h1>🎯 对对碰翻牌游戏</h1>
         <div class="game-info">
             <p>翻牌寻找相同的图片配对，每次只能翻开2张牌！</p>
+            <div id="loadingMessage" style="display: none; color: #666; margin-top: 10px;">
+                <p>🔄 正在加载图片，请稍候...</p>
+            </div>
         </div>
         
         <div class="game-stats">
@@ -352,13 +383,41 @@
                     'pic_unified/7.png',
                     'pic_unified/8.png'
                 ];
+                this.preloadedImages = new Map();
                 this.init();
             }
 
             init() {
-                this.createCards();
-                this.renderCards();
-                this.startTimer();
+                this.preloadImages().then(() => {
+                    this.createCards();
+                    this.renderCards();
+                    this.startTimer();
+                });
+            }
+
+            preloadImages() {
+                // 显示加载提示
+                document.getElementById('loadingMessage').style.display = 'block';
+                
+                const promises = this.images.map(imageSrc => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            this.preloadedImages.set(imageSrc, img);
+                            resolve(img);
+                        };
+                        img.onerror = () => {
+                            console.warn(`Failed to load image: ${imageSrc}`);
+                            resolve(null); // 即使失败也继续
+                        };
+                        img.src = imageSrc;
+                    });
+                });
+                
+                return Promise.all(promises).then(() => {
+                    // 隐藏加载提示
+                    document.getElementById('loadingMessage').style.display = 'none';
+                });
             }
 
             createCards() {
@@ -402,7 +461,25 @@
                         cardElement.classList.add('flipped');
                         const imageElement = document.createElement('div');
                         imageElement.className = 'card-image';
-                        imageElement.style.backgroundImage = `url(${card.image})`;
+                        
+                        // 使用预加载的图片
+                        const preloadedImg = this.preloadedImages.get(card.image);
+                        if (preloadedImg) {
+                            imageElement.style.backgroundImage = `url(${card.image})`;
+                            // 添加加载完成类
+                            setTimeout(() => {
+                                imageElement.classList.add('loaded');
+                            }, 100);
+                        } else {
+                            // 如果图片未预加载，使用普通方式加载
+                            imageElement.style.backgroundImage = `url(${card.image})`;
+                            const img = new Image();
+                            img.onload = () => {
+                                imageElement.classList.add('loaded');
+                            };
+                            img.src = card.image;
+                        }
+                        
                         cardElement.appendChild(imageElement);
                     }
                     
