@@ -131,12 +131,47 @@
             display: none;
             min-height: 60px;
             object-fit: contain;
-            transition: opacity 0.2s ease;
+            position: relative;
+        }
+
+        .card-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #999;
+            z-index: 1;
+        }
+
+        .card-image.loaded::before {
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .memory-card.flipped .card-image {
             display: block;
-            opacity: 1;
         }
 
         .controls {
@@ -300,6 +335,10 @@
         <h1>🎯 对对碰翻牌游戏</h1>
         <div class="game-info">
             <p>翻牌寻找相同的图片配对，每次只能翻开2张牌！</p>
+            <div id="loadingStatus" style="display: none; margin-top: 10px; color: #666;">
+                <div class="loading-spinner" style="display: inline-block; margin-right: 10px;"></div>
+                <span>正在加载图片...</span>
+            </div>
         </div>
         
         <div class="game-stats">
@@ -344,117 +383,65 @@
                 this.gameWon = false;
                 this.startTime = null;
                 this.timerInterval = null;
-                this.imagesLoaded = false;
                 this.images = [
-                    'pic_unified/1.png',
-                    'pic_unified/2.png',
-                    'pic_unified/3.png',
-                    'pic_unified/4.png',
-                    'pic_unified/5.png',
-                    'pic_unified/6.png',
-                    'pic_unified/7.png',
-                    'pic_unified/8.png'
+                    'pic_compressed/1.jpg',
+                    'pic_compressed/2.jpg',
+                    'pic_compressed/3.jpg',
+                    'pic_compressed/4.jpg',
+                    'pic_compressed/5.jpg',
+                    'pic_compressed/6.jpg',
+                    'pic_compressed/7.jpg',
+                    'pic_compressed/8.jpg'
                 ];
+                this.loadedImages = new Set();
+                this.init();
+            }
+
+            init() {
                 this.preloadImages();
+                this.createCards();
+                this.renderCards();
+                this.startTimer();
             }
 
             preloadImages() {
-                const loadingContainer = document.createElement('div');
-                loadingContainer.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: rgba(255, 255, 255, 0.95);
-                    padding: 30px 40px;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-                    z-index: 1001;
-                    text-align: center;
-                    min-width: 300px;
-                `;
-
-                const loadingText = document.createElement('div');
-                loadingText.innerHTML = '🔄 正在加载图片，请稍候...';
-                loadingText.style.cssText = `
-                    font-size: 18px;
-                    font-weight: bold;
-                    color: #333;
-                    margin-bottom: 20px;
-                `;
-
-                const progressBar = document.createElement('div');
-                progressBar.style.cssText = `
-                    width: 100%;
-                    height: 8px;
-                    background: #e0e0e0;
-                    border-radius: 4px;
-                    overflow: hidden;
-                    margin-bottom: 10px;
-                `;
-
-                const progressFill = document.createElement('div');
-                progressFill.style.cssText = `
-                    height: 100%;
-                    background: linear-gradient(45deg, #667eea, #764ba2);
-                    width: 0%;
-                    transition: width 0.3s ease;
-                `;
-
-                const progressText = document.createElement('div');
-                progressText.style.cssText = `
-                    font-size: 14px;
-                    color: #666;
-                `;
-
-                progressBar.appendChild(progressFill);
-                loadingContainer.appendChild(loadingText);
-                loadingContainer.appendChild(progressBar);
-                loadingContainer.appendChild(progressText);
-                document.body.appendChild(loadingContainer);
-
+                const loadingStatus = document.getElementById('loadingStatus');
+                loadingStatus.style.display = 'block';
+                
                 let loadedCount = 0;
                 const totalImages = this.images.length;
-
-                const imagePromises = this.images.map((imageSrc, index) => {
+                
+                const promises = this.images.map(imageSrc => {
                     return new Promise((resolve, reject) => {
                         const img = new Image();
                         img.onload = () => {
+                            this.loadedImages.add(imageSrc);
                             loadedCount++;
-                            const progress = (loadedCount / totalImages) * 100;
-                            progressFill.style.width = `${progress}%`;
-                            progressText.textContent = `已加载 ${loadedCount}/${totalImages} 张图片`;
-                            console.log(`图片 ${index + 1}/${totalImages} 加载完成: ${imageSrc}`);
-                            resolve(img);
+                            loadingStatus.innerHTML = `
+                                <div class="loading-spinner" style="display: inline-block; margin-right: 10px;"></div>
+                                <span>正在加载图片... (${loadedCount}/${totalImages})</span>
+                            `;
+                            resolve(imageSrc);
                         };
                         img.onerror = () => {
-                            console.error(`图片加载失败: ${imageSrc}`);
-                            reject(new Error(`Failed to load ${imageSrc}`));
+                            loadedCount++;
+                            loadingStatus.innerHTML = `
+                                <div class="loading-spinner" style="display: inline-block; margin-right: 10px;"></div>
+                                <span>正在加载图片... (${loadedCount}/${totalImages})</span>
+                            `;
+                            reject(imageSrc);
                         };
                         img.src = imageSrc;
                     });
                 });
 
-                Promise.all(imagePromises)
-                    .then(() => {
-                        this.imagesLoaded = true;
-                        progressText.textContent = '加载完成！';
-                        setTimeout(() => {
-                            document.body.removeChild(loadingContainer);
-                            this.init();
-                        }, 500);
-                    })
-                    .catch((error) => {
-                        console.error('图片预加载失败:', error);
-                        document.body.removeChild(loadingContainer);
-                        alert('图片加载失败，请刷新页面重试');
-                    });
-            }
-
-            init() {
-                this.createCards();
-                this.renderCards();
-                this.startTimer();
+                Promise.all(promises).then(() => {
+                    loadingStatus.style.display = 'none';
+                    console.log('所有图片预加载完成');
+                }).catch((error) => {
+                    loadingStatus.style.display = 'none';
+                    console.warn('部分图片加载失败:', error);
+                });
             }
 
             createCards() {
@@ -498,7 +485,18 @@
                         cardElement.classList.add('flipped');
                         const imageElement = document.createElement('div');
                         imageElement.className = 'card-image';
-                        imageElement.style.backgroundImage = `url(${card.image})`;
+                        
+                        // 检查图片是否已预加载
+                        if (this.loadedImages.has(card.image)) {
+                            imageElement.style.backgroundImage = `url(${card.image})`;
+                            imageElement.classList.add('loaded');
+                        } else {
+                            // 显示加载状态
+                            imageElement.innerHTML = '<div class="loading-spinner"></div>';
+                            // 尝试加载图片
+                            this.loadImage(card.image, imageElement);
+                        }
+                        
                         cardElement.appendChild(imageElement);
                     }
                     
@@ -511,8 +509,21 @@
                 });
             }
 
+            loadImage(imageSrc, imageElement) {
+                const img = new Image();
+                img.onload = () => {
+                    imageElement.style.backgroundImage = `url(${imageSrc})`;
+                    imageElement.classList.add('loaded');
+                    imageElement.innerHTML = '';
+                };
+                img.onerror = () => {
+                    imageElement.innerHTML = '<div style="color: #999;">加载失败</div>';
+                };
+                img.src = imageSrc;
+            }
+
             flipCard(index) {
-                if (this.gameWon || !this.imagesLoaded) return;
+                if (this.gameWon) return;
                 
                 const card = this.cards[index];
                 
