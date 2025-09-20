@@ -141,7 +141,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            background: transparent;
             border-radius: 7px;
             display: flex;
             align-items: center;
@@ -517,7 +517,7 @@
                     imageElement.innerHTML = '';
                 };
                 img.onerror = () => {
-                    imageElement.innerHTML = '<div style="color: #999;">加载失败</div>';
+                    imageElement.innerHTML = '<div style="color: #999; background: transparent; padding: 10px;">加载失败</div>';
                 };
                 img.src = imageSrc;
             }
