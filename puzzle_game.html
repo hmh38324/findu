@@ -131,38 +131,12 @@
             display: none;
             min-height: 60px;
             object-fit: contain;
-            background-color: #f0f0f0;
-            position: relative;
-        }
-
-        .card-image::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-            border-radius: 7px;
-        }
-
-        .card-image.loaded::before {
-            display: none;
-        }
-
-        @keyframes loading {
-            0% {
-                background-position: 200% 0;
-            }
-            100% {
-                background-position: -200% 0;
-            }
+            transition: opacity 0.2s ease;
         }
 
         .memory-card.flipped .card-image {
             display: block;
+            opacity: 1;
         }
 
         .controls {
@@ -326,9 +300,6 @@
         <h1>🎯 对对碰翻牌游戏</h1>
         <div class="game-info">
             <p>翻牌寻找相同的图片配对，每次只能翻开2张牌！</p>
-            <div id="loadingMessage" style="display: none; color: #666; margin-top: 10px;">
-                <p>🔄 正在加载图片，请稍候...</p>
-            </div>
         </div>
         
         <div class="game-stats">
@@ -373,6 +344,7 @@
                 this.gameWon = false;
                 this.startTime = null;
                 this.timerInterval = null;
+                this.imagesLoaded = false;
                 this.images = [
                     'pic_unified/1.png',
                     'pic_unified/2.png',
@@ -383,41 +355,106 @@
                     'pic_unified/7.png',
                     'pic_unified/8.png'
                 ];
-                this.preloadedImages = new Map();
-                this.init();
-            }
-
-            init() {
-                this.preloadImages().then(() => {
-                    this.createCards();
-                    this.renderCards();
-                    this.startTimer();
-                });
+                this.preloadImages();
             }
 
             preloadImages() {
-                // 显示加载提示
-                document.getElementById('loadingMessage').style.display = 'block';
-                
-                const promises = this.images.map(imageSrc => {
+                const loadingContainer = document.createElement('div');
+                loadingContainer.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(255, 255, 255, 0.95);
+                    padding: 30px 40px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    z-index: 1001;
+                    text-align: center;
+                    min-width: 300px;
+                `;
+
+                const loadingText = document.createElement('div');
+                loadingText.innerHTML = '🔄 正在加载图片，请稍候...';
+                loadingText.style.cssText = `
+                    font-size: 18px;
+                    font-weight: bold;
+                    color: #333;
+                    margin-bottom: 20px;
+                `;
+
+                const progressBar = document.createElement('div');
+                progressBar.style.cssText = `
+                    width: 100%;
+                    height: 8px;
+                    background: #e0e0e0;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    margin-bottom: 10px;
+                `;
+
+                const progressFill = document.createElement('div');
+                progressFill.style.cssText = `
+                    height: 100%;
+                    background: linear-gradient(45deg, #667eea, #764ba2);
+                    width: 0%;
+                    transition: width 0.3s ease;
+                `;
+
+                const progressText = document.createElement('div');
+                progressText.style.cssText = `
+                    font-size: 14px;
+                    color: #666;
+                `;
+
+                progressBar.appendChild(progressFill);
+                loadingContainer.appendChild(loadingText);
+                loadingContainer.appendChild(progressBar);
+                loadingContainer.appendChild(progressText);
+                document.body.appendChild(loadingContainer);
+
+                let loadedCount = 0;
+                const totalImages = this.images.length;
+
+                const imagePromises = this.images.map((imageSrc, index) => {
                     return new Promise((resolve, reject) => {
                         const img = new Image();
                         img.onload = () => {
-                            this.preloadedImages.set(imageSrc, img);
+                            loadedCount++;
+                            const progress = (loadedCount / totalImages) * 100;
+                            progressFill.style.width = `${progress}%`;
+                            progressText.textContent = `已加载 ${loadedCount}/${totalImages} 张图片`;
+                            console.log(`图片 ${index + 1}/${totalImages} 加载完成: ${imageSrc}`);
                             resolve(img);
                         };
                         img.onerror = () => {
-                            console.warn(`Failed to load image: ${imageSrc}`);
-                            resolve(null); // 即使失败也继续
+                            console.error(`图片加载失败: ${imageSrc}`);
+                            reject(new Error(`Failed to load ${imageSrc}`));
                         };
                         img.src = imageSrc;
                     });
                 });
-                
-                return Promise.all(promises).then(() => {
-                    // 隐藏加载提示
-                    document.getElementById('loadingMessage').style.display = 'none';
-                });
+
+                Promise.all(imagePromises)
+                    .then(() => {
+                        this.imagesLoaded = true;
+                        progressText.textContent = '加载完成！';
+                        setTimeout(() => {
+                            document.body.removeChild(loadingContainer);
+                            this.init();
+                        }, 500);
+                    })
+                    .catch((error) => {
+                        console.error('图片预加载失败:', error);
+                        document.body.removeChild(loadingContainer);
+                        alert('图片加载失败，请刷新页面重试');
+                    });
+            }
+
+            init() {
+                this.createCards();
+                this.renderCards();
+                this.startTimer();
             }
 
             createCards() {
@@ -461,25 +498,7 @@
                         cardElement.classList.add('flipped');
                         const imageElement = document.createElement('div');
                         imageElement.className = 'card-image';
-                        
-                        // 使用预加载的图片
-                        const preloadedImg = this.preloadedImages.get(card.image);
-                        if (preloadedImg) {
-                            imageElement.style.backgroundImage = `url(${card.image})`;
-                            // 添加加载完成类
-                            setTimeout(() => {
-                                imageElement.classList.add('loaded');
-                            }, 100);
-                        } else {
-                            // 如果图片未预加载，使用普通方式加载
-                            imageElement.style.backgroundImage = `url(${card.image})`;
-                            const img = new Image();
-                            img.onload = () => {
-                                imageElement.classList.add('loaded');
-                            };
-                            img.src = card.image;
-                        }
-                        
+                        imageElement.style.backgroundImage = `url(${card.image})`;
                         cardElement.appendChild(imageElement);
                     }
                     
@@ -493,7 +512,7 @@
             }
 
             flipCard(index) {
-                if (this.gameWon) return;
+                if (this.gameWon || !this.imagesLoaded) return;
                 
                 const card = this.cards[index];
                 
