@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字华容道</title>
+    <title>对对碰翻牌游戏</title>
     <style>
         * {
             margin: 0;
@@ -28,28 +28,8 @@
             padding: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             text-align: center;
-            max-width: 800px;
+            max-width: 600px;
             width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .game-content {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .puzzle-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .reference-section {
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -65,83 +45,96 @@
         .game-info {
             margin-bottom: 30px;
             color: #666;
+            font-size: 1.1em;
         }
 
-        .puzzle-container {
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .stat {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .memory-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
-            gap: 5px;
-            width: 450px;
-            height: 450px;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 8px;
+            width: 400px;
+            height: 400px;
             margin: 0 auto 30px;
             border: 3px solid #333;
-            border-radius: 10px;
+            border-radius: 15px;
             background: #f0f0f0;
-            padding: 10px;
+            padding: 15px;
         }
 
-        .reference-container {
-            width: 300px;
-            height: 300px;
-            border: none;
-            border-radius: 10px;
-            background: #f0f0f0;
-            padding: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .reference-image {
+        .memory-card {
             width: 100%;
             height: 100%;
-            background-image: url('origin.png');
-            background-size: cover;
-            background-position: center;
-            border-radius: 5px;
-        }
-
-        .reference-label {
-            font-size: 16px;
-            color: #4CAF50;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .puzzle-piece {
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #333;
-            border-radius: 5px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: 3px solid #333;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            min-height: 80px;
         }
 
-        .puzzle-piece:hover {
+        .memory-card:hover {
             transform: scale(1.05);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
-        .puzzle-piece.empty {
-            background: #f0f0f0;
-            cursor: default;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: #999;
-            position: relative;
-            overflow: hidden;
-            border: none;
+        .memory-card.flipped {
+            background: white;
+            color: #333;
+            text-shadow: none;
         }
 
-        .puzzle-piece.empty:hover {
-            transform: none;
+        .memory-card.matched {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            cursor: default;
+            transform: scale(0.95);
+        }
+
+        .memory-card.matched:hover {
+            transform: scale(0.95);
             box-shadow: none;
+        }
+
+        .card-image {
+            width: 100%;
+            height: 100%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 7px;
+            display: none;
+            min-height: 60px;
+            object-fit: contain;
+        }
+
+        .memory-card.flipped .card-image {
+            display: block;
         }
 
         .controls {
@@ -171,10 +164,11 @@
             transform: translateY(0);
         }
 
-        .score {
-            font-size: 18px;
-            color: #333;
-            margin-top: 20px;
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .win-message {
@@ -189,7 +183,7 @@
             text-align: center;
             display: none;
             z-index: 1000;
-            width: 300px;
+            width: 350px;
             height: 300px;
             flex-direction: column;
             justify-content: center;
@@ -219,70 +213,62 @@
             z-index: 999;
         }
 
+        .timer {
+            font-size: 1.2em;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
         @media (max-width: 768px) {
-            .game-content {
-                flex-direction: column;
-                gap: 20px;
-                align-items: center;
-            }
-            
-            .puzzle-section {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .reference-section {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .puzzle-container {
+            .memory-grid {
                 width: 300px;
                 height: 300px;
+                gap: 6px;
+                padding: 10px;
             }
             
-            .reference-container {
-                width: 250px;
-                height: 250px;
+            .memory-card {
+                min-height: 60px;
             }
             
-            h1 {
-                font-size: 2em;
+            .card-image {
+                min-height: 50px;
             }
             
             .game-container {
                 max-width: 100%;
                 padding: 20px;
             }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .game-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .stat {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
         }
 
         @media (max-width: 480px) {
-            .puzzle-section {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .reference-section {
-                width: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .puzzle-container {
+            .memory-grid {
                 width: 250px;
                 height: 250px;
+                gap: 4px;
+                padding: 8px;
             }
             
-            .reference-container {
-                width: 200px;
-                height: 200px;
+            .memory-card {
+                min-height: 50px;
+            }
+            
+            .card-image {
+                min-height: 40px;
             }
             
             h1 {
@@ -309,286 +295,261 @@
 </head>
 <body>
     <div class="game-container">
-        <h1>🧩 数字华容道</h1>
+        <h1>🎯 对对碰翻牌游戏</h1>
         <div class="game-info">
-            <p>点击图片块来移动它们，将图片拼回原样！</p>
+            <p>翻牌寻找相同的图片配对，每次只能翻开2张牌！</p>
+        </div>
+        
+        <div class="game-stats">
+            <div class="stat">
+                <div>翻牌次数: <span id="flipCount">0</span></div>
+            </div>
+            <div class="stat">
+                <div>配对成功: <span id="matchCount">0</span>/8</div>
+            </div>
+            <div class="stat timer">
+                <div>时间: <span id="timer">00:00</span></div>
+            </div>
         </div>
         
         <div class="controls">
-            <button onclick="shufflePuzzle()">🔀 打乱</button>
-            <button onclick="resetPuzzle()">🔄 重置</button>
+            <button onclick="startNewGame()">🔄 新游戏</button>
+            <button onclick="shuffleCards()" id="shuffleBtn">🔀 重新打乱</button>
         </div>
         
-        <div class="game-content">
-            <div class="puzzle-section">
-                <div class="puzzle-container" id="puzzleContainer">
-                    <!-- 拼图块将通过JavaScript动态生成 -->
-                </div>
-                <div class="score">
-                    <p>移动次数: <span id="moveCount">0</span></p>
-                </div>
-            </div>
-            
-            <div class="reference-section">
-                <div class="reference-label">🎯 参考图片</div>
-                <div class="reference-container">
-                    <div class="reference-image"></div>
-                </div>
-                 
-            </div>
+        <div class="memory-grid" id="memoryGrid">
+            <!-- 卡片将通过JavaScript动态生成 -->
         </div>
     </div>
 
     <div class="overlay" id="overlay"></div>
     <div class="win-message" id="winMessage">
         <h2>🎉 恭喜完成！</h2>
-        <p>你成功完成了拼图！</p>
-        <p>总移动次数: <span id="finalMoves">0</span></p>
+        <p>你成功完成了所有配对！</p>
+        <p>翻牌次数: <span id="finalFlips">0</span></p>
+        <p>用时: <span id="finalTime">00:00</span></p>
         <button onclick="closeWinMessage()">再玩一次</button>
     </div>
 
     <script>
-        class PuzzleGame {
+        class MemoryGame {
             constructor() {
-                this.pieces = [];
-                this.emptyIndex = 2; // 右上角位置（索引2）是空的
-                this.moveCount = 0;
-                this.isGameWon = false;
-                this.pieceImages = [
-                    'split_images/liqun_part_1_1.png',
-                    'split_images/liqun_part_1_2.png',
-                    null, // 右上角作为空白块（liqun_part_1_3.png）
-                    'split_images/liqun_part_2_1.png',
-                    'split_images/liqun_part_2_2.png',
-                    'split_images/liqun_part_2_3.png',
-                    'split_images/liqun_part_3_1.png',
-                    'split_images/liqun_part_3_2.png',
-                    'split_images/liqun_part_3_3.png'
+                this.cards = [];
+                this.flippedCards = [];
+                this.matchedPairs = 0;
+                this.flipCount = 0;
+                this.gameStarted = false;
+                this.gameWon = false;
+                this.startTime = null;
+                this.timerInterval = null;
+                this.images = [
+                    'pic_unified/1.png',
+                    'pic_unified/2.png',
+                    'pic_unified/3.png',
+                    'pic_unified/4.png',
+                    'pic_unified/5.png',
+                    'pic_unified/6.png',
+                    'pic_unified/7.png',
+                    'pic_unified/8.png'
                 ];
-                this.correctOrder = [0, 1, null, 3, 4, 5, 6, 7, 8];
                 this.init();
             }
 
             init() {
-                this.createPuzzle();
-                this.renderPuzzle();
-                // 首次进入游戏时自动打乱
-                setTimeout(() => {
-                    this.shufflePuzzle();
-                }, 500); // 延迟500ms确保界面完全加载
+                this.createCards();
+                this.renderCards();
+                this.startTimer();
             }
 
-            createPuzzle() {
-                const container = document.getElementById('puzzleContainer');
-                container.innerHTML = '';
-                
-                for (let i = 0; i < 9; i++) {
-                    const piece = document.createElement('div');
-                    piece.className = 'puzzle-piece';
-                    piece.dataset.index = i;
-                    
-                    // 为每个图片块添加点击事件监听器
-                    piece.addEventListener('click', () => this.movePiece(i));
-                    
-                    container.appendChild(piece);
+            createCards() {
+                // 创建16张卡片，每张图片2张
+                this.cards = [];
+                for (let i = 0; i < 8; i++) {
+                    this.cards.push({
+                        id: i,
+                        image: this.images[i],
+                        flipped: false,
+                        matched: false
+                    });
+                    this.cards.push({
+                        id: i + 8,
+                        image: this.images[i],
+                        flipped: false,
+                        matched: false
+                    });
+                }
+                this.shuffleCards();
+            }
+
+            shuffleCards() {
+                // Fisher-Yates洗牌算法
+                for (let i = this.cards.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
                 }
             }
 
-            renderPuzzle() {
-                const pieces = document.querySelectorAll('.puzzle-piece');
-                pieces.forEach((piece, index) => {
-                    if (this.pieceImages[index]) {
-                        piece.style.backgroundImage = `url(${this.pieceImages[index]})`;
-                        piece.classList.remove('empty');
-                        piece.textContent = '';
-                    } else {
-                        piece.classList.add('empty');
-                        piece.textContent = '';
-                        piece.style.backgroundImage = '';
+            renderCards() {
+                const grid = document.getElementById('memoryGrid');
+                grid.innerHTML = '';
+                
+                this.cards.forEach((card, index) => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'memory-card';
+                    cardElement.dataset.index = index;
+                    
+                    if (card.flipped) {
+                        cardElement.classList.add('flipped');
+                        const imageElement = document.createElement('div');
+                        imageElement.className = 'card-image';
+                        imageElement.style.backgroundImage = `url(${card.image})`;
+                        cardElement.appendChild(imageElement);
                     }
+                    
+                    if (card.matched) {
+                        cardElement.classList.add('matched');
+                    }
+                    
+                    cardElement.addEventListener('click', () => this.flipCard(index));
+                    grid.appendChild(cardElement);
                 });
             }
 
-            movePiece(index) {
-                if (this.isGameWon) return;
+            flipCard(index) {
+                if (this.gameWon) return;
                 
-                const emptyIndex = this.pieceImages.indexOf(null);
+                const card = this.cards[index];
                 
-                // 检查是否可以移动（相邻位置）
-                if (this.canMove(index, emptyIndex)) {
-                    // 交换位置
-                    [this.pieceImages[index], this.pieceImages[emptyIndex]] = 
-                    [this.pieceImages[emptyIndex], this.pieceImages[index]];
-                    
-                    this.moveCount++;
-                    document.getElementById('moveCount').textContent = this.moveCount;
-                    
-                    this.renderPuzzle();
-                    this.checkWin();
-                }
-            }
-
-            canMove(index, emptyIndex) {
-                const row = Math.floor(index / 3);
-                const col = index % 3;
-                const emptyRow = Math.floor(emptyIndex / 3);
-                const emptyCol = emptyIndex % 3;
+                // 如果卡片已经翻开或已配对，则不能点击
+                if (card.flipped || card.matched) return;
                 
-                // 检查是否在相邻位置（上下左右）
-                return (Math.abs(row - emptyRow) === 1 && col === emptyCol) ||
-                       (Math.abs(col - emptyCol) === 1 && row === emptyRow);
-            }
-
-            shufflePuzzle() {
-                // 先重置到初始状态
-                this.resetPuzzle();
+                // 如果已经翻开了2张卡片，则不能继续翻开
+                if (this.flippedCards.length >= 2) return;
                 
-                // 然后进行多次随机移动来打乱，增加随机步数
-                for (let i = 0; i < 150; i++) {
-                    const emptyIndex = this.pieceImages.indexOf(null);
-                    const possibleMoves = [];
-                    
-                    // 找到所有可以移动到空白位置的图片块
-                    for (let j = 0; j < 9; j++) {
-                        if (j !== emptyIndex && this.canMove(j, emptyIndex)) {
-                            possibleMoves.push(j);
-                        }
-                    }
-                    
-                    // 随机选择一个可移动的图片块
-                    if (possibleMoves.length > 0) {
-                        const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-                        [this.pieceImages[randomMove], this.pieceImages[emptyIndex]] = 
-                        [this.pieceImages[emptyIndex], this.pieceImages[randomMove]];
-                    }
+                // 翻开卡片
+                card.flipped = true;
+                this.flippedCards.push(index);
+                this.flipCount++;
+                
+                if (!this.gameStarted) {
+                    this.gameStarted = true;
+                    this.startTime = Date.now();
                 }
                 
-                // 现在将空白块移动回右上角，通过合法的移动
-                this.moveEmptyToTopRight();
+                this.updateStats();
+                this.renderCards();
                 
-                this.moveCount = 0;
-                document.getElementById('moveCount').textContent = this.moveCount;
-                this.isGameWon = false;
-                this.renderPuzzle();
-            }
-
-            moveEmptyToTopRight() {
-                // 通过合法移动将空白块移动到右上角（位置2）
-                const targetPosition = 2;
-                let currentEmptyIndex = this.pieceImages.indexOf(null);
-                
-                while (currentEmptyIndex !== targetPosition) {
-                    // 找到可以移动到空白位置的图片块
-                    const possibleMoves = [];
-                    for (let j = 0; j < 9; j++) {
-                        if (j !== currentEmptyIndex && this.canMove(j, currentEmptyIndex)) {
-                            possibleMoves.push(j);
-                        }
-                    }
-                    
-                    if (possibleMoves.length > 0) {
-                        // 选择一个移动，优先选择朝向目标位置的移动
-                        let bestMove = possibleMoves[0];
-                        let bestDistance = Math.abs(Math.floor(bestMove / 3) - Math.floor(targetPosition / 3)) + 
-                                         Math.abs(bestMove % 3 - targetPosition % 3);
-                        
-                        for (let move of possibleMoves) {
-                            const distance = Math.abs(Math.floor(move / 3) - Math.floor(targetPosition / 3)) + 
-                                           Math.abs(move % 3 - targetPosition % 3);
-                            if (distance < bestDistance) {
-                                bestMove = move;
-                                bestDistance = distance;
-                            }
-                        }
-                        
-                        // 执行移动
-                        [this.pieceImages[bestMove], this.pieceImages[currentEmptyIndex]] = 
-                        [this.pieceImages[currentEmptyIndex], this.pieceImages[bestMove]];
-                        
-                        currentEmptyIndex = this.pieceImages.indexOf(null);
-                    } else {
-                        break; // 无法移动，退出循环
-                    }
-                }
-            }
-
-            resetPuzzle() {
-                this.pieceImages = [
-                    'split_images/liqun_part_1_1.png',
-                    'split_images/liqun_part_1_2.png',
-                    null, // 右上角作为空白块
-                    'split_images/liqun_part_2_1.png',
-                    'split_images/liqun_part_2_2.png',
-                    'split_images/liqun_part_2_3.png',
-                    'split_images/liqun_part_3_1.png',
-                    'split_images/liqun_part_3_2.png',
-                    'split_images/liqun_part_3_3.png'
-                ];
-                this.moveCount = 0;
-                document.getElementById('moveCount').textContent = this.moveCount;
-                this.isGameWon = false;
-                this.renderPuzzle();
-            }
-
-            checkWin() {
-                // 检查是否完成（除了空位置，其他位置都正确）
-                let isCorrect = true;
-                for (let i = 0; i < 9; i++) {
-                    if (i === 2) {
-                        // 位置2（右上角）应该是空的
-                        if (this.pieceImages[i] !== null) {
-                            isCorrect = false;
-                            break;
-                        }
-                    } else {
-                        // 其他位置应该有正确的图片
-                        const expectedRow = Math.floor(i/3) + 1;
-                        const expectedCol = (i%3) + 1;
-                        const expectedImage = `split_images/liqun_part_${expectedRow}_${expectedCol}.png`;
-                        
-                        if (this.pieceImages[i] !== expectedImage) {
-                            isCorrect = false;
-                            break;
-                        }
-                    }
-                }
-                
-                if (isCorrect) {
-                    this.isGameWon = true;
-                    // 停顿两秒后再显示成功提醒
+                // 如果翻开了2张卡片，检查是否匹配
+                if (this.flippedCards.length === 2) {
                     setTimeout(() => {
-                        this.showWinMessage();
-                    }, 2000);
+                        this.checkMatch();
+                    }, 1000);
+                }
+            }
+
+            checkMatch() {
+                const [index1, index2] = this.flippedCards;
+                const card1 = this.cards[index1];
+                const card2 = this.cards[index2];
+                
+                if (card1.image === card2.image) {
+                    // 匹配成功
+                    card1.matched = true;
+                    card2.matched = true;
+                    this.matchedPairs++;
+                    
+                    if (this.matchedPairs === 8) {
+                        this.gameWon = true;
+                        this.stopTimer();
+                        setTimeout(() => {
+                            this.showWinMessage();
+                        }, 500);
+                    }
+                } else {
+                    // 匹配失败，翻回卡片
+                    card1.flipped = false;
+                    card2.flipped = false;
+                }
+                
+                this.flippedCards = [];
+                this.updateStats();
+                this.renderCards();
+            }
+
+            updateStats() {
+                document.getElementById('flipCount').textContent = this.flipCount;
+                document.getElementById('matchCount').textContent = this.matchedPairs;
+            }
+
+            startTimer() {
+                this.timerInterval = setInterval(() => {
+                    if (this.gameStarted && !this.gameWon) {
+                        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                        const minutes = Math.floor(elapsed / 60);
+                        const seconds = elapsed % 60;
+                        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        document.getElementById('timer').textContent = timeString;
+                    }
+                }, 1000);
+            }
+
+            stopTimer() {
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
                 }
             }
 
             showWinMessage() {
-                document.getElementById('finalMoves').textContent = this.moveCount;
+                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('finalFlips').textContent = this.flipCount;
+                document.getElementById('finalTime').textContent = timeString;
                 document.getElementById('overlay').style.display = 'block';
-                document.getElementById('winMessage').style.display = 'block';
+                document.getElementById('winMessage').style.display = 'flex';
+            }
+
+            resetGame() {
+                this.flippedCards = [];
+                this.matchedPairs = 0;
+                this.flipCount = 0;
+                this.gameStarted = false;
+                this.gameWon = false;
+                this.startTime = null;
+                this.stopTimer();
+                this.createCards();
+                this.renderCards();
+                this.updateStats();
+                document.getElementById('timer').textContent = '00:00';
             }
         }
 
         // 全局函数
         let game;
 
-        function shufflePuzzle() {
-            game.shufflePuzzle();
+        function startNewGame() {
+            game.resetGame();
         }
 
-        function resetPuzzle() {
-            game.resetPuzzle();
+        function shuffleCards() {
+            if (game.gameStarted && !game.gameWon) {
+                game.shuffleCards();
+                game.renderCards();
+            }
         }
 
         function closeWinMessage() {
             document.getElementById('overlay').style.display = 'none';
             document.getElementById('winMessage').style.display = 'none';
-            game.shufflePuzzle();
+            game.resetGame();
         }
 
         // 初始化游戏
         window.addEventListener('load', () => {
-            game = new PuzzleGame();
+            game = new MemoryGame();
         });
     </script>
 </body>
